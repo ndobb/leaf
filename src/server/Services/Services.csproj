@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CData.Databricks" Version="24.0.9175" />
     <PackageReference Include="Dapper" Version="1.60.6" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.2.0" />
@@ -23,6 +24,7 @@
     <PackageReference Include="Npgsql" Version="6.0.2" />
     <PackageReference Include="System.Data.OracleClient" Version="1.0.8" />
     <PackageReference Include="Google.Cloud.BigQuery.V2" Version="2.3.0" />
+    <PackageReference Include="System.Data.Odbc" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>

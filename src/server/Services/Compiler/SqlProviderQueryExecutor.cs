@@ -9,11 +9,14 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Threading;
 using System.Threading.Tasks;
-using Model.Compiler;
 using Google.Cloud.BigQuery.V2;
+using System.Data.CData.Databricks;
+using System.Data.Odbc;
+using Model.Compiler;
 
 namespace Services.Compiler
 {
+
     public abstract class BaseQueryExecutor : ISqlProviderQueryExecutor
     {
         public Task<ILeafDbDataReader> ExecuteReaderAsync(
@@ -232,6 +235,54 @@ namespace Services.Compiler
         }
     }
 
+    /**
+     * Databricks
+     */
+    public class DatabricksQueryExecutor : BaseQueryExecutor
+    {
+        System.Data.DbType ToSqlType(object val)
+        {
+            if (val is string)   return System.Data.DbType.String;
+            if (val is decimal)  return System.Data.DbType.Decimal;
+            if (val is double)   return System.Data.DbType.Double;
+            if (val is int)      return System.Data.DbType.Int32;
+            if (val is bool)     return System.Data.DbType.Boolean;
+            if (val is Guid)     return System.Data.DbType.Guid;
+            if (val is DateTime) return System.Data.DbType.DateTime;
+            return System.Data.DbType.String;
+        }
+    
+        DatabricksParameter ToSqlParameter(QueryParameter q)
+        {
+            var parameter = new DatabricksParameter($"?{q.Name}", ToSqlType(q.Value));
+            parameter.Value = q.Value;
+
+            return parameter;
+        }
+
+        public override async Task<ILeafDbDataReader> ExecuteReaderAsync(
+            string connStr,
+            string query,
+            int timeout,
+            CancellationToken token,
+            IEnumerable<QueryParameter> parameters)
+        {
+            // Open connection
+            var conn = new DatabricksConnection(connStr);
+            await conn.OpenAsync();
+
+            // Create command
+            var cmd = new DatabricksCommand(query, conn);
+            cmd.CommandTimeout = timeout;
+            cmd.Parameters.AddRange(parameters.Select(p => ToSqlParameter(p)).ToArray());
+
+            // Execute reader
+            var reader = await cmd.ExecuteReaderAsync(token);
+
+            return new WrappedDbDataReader(conn, reader);
+        }
+    }
+    
     /**
      * Google BigQuery
      */
