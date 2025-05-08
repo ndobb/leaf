@@ -51,6 +51,31 @@ namespace Services.Compiler.SqlBuilder
         }
     }
 
+    public class DatabricksSqlDialect : BaseSqlDialect, ISqlDialect
+    {
+        public string Now() => "current_date()";
+        public string Intersect() => "INTERSECT";
+        public string Except() => "EXCEPT";
+        public string DateAdd(DateIncrementType incrType, int interval, object date) => $"date_add({ToSqlTime(incrType)}, {interval}, TIMESTAMP{date})";
+        public string Convert(ColumnType targetType, object value) => $"cast({value} AS {ToSqlType(targetType)})";
+        public string DeclareParam(string name, ColumnType type, object value) => $"DECLARE VARIABLE {name} {ToSqlType(type)} = {value}";
+        public string ToSqlParamName(string name) => $"{name}";
+
+        public string ToSqlType(ColumnType type)
+        {
+            return type switch
+            {
+                ColumnType.String  => "STRING",
+                ColumnType.Integer => "INT",
+                ColumnType.Decimal => "DECIMAL",
+                ColumnType.Date    => "TIMESTAMP",
+                ColumnType.Boolean => "BOOLEAN",
+                ColumnType.Guid    => "STRING",
+                _ => "STRING",
+            };
+        }
+    }
+
     public class MySqlDialect : BaseSqlDialect, ISqlDialect
     {
         public string Now() => "NOW()";

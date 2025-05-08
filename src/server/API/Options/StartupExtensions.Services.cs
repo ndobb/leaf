@@ -241,6 +241,11 @@ namespace API.Options
                     services.AddTransient<ISqlProviderQueryExecutor, BigQueryQueryExecutor>();
                     services.AddTransient<ICachedCohortPreparer, BigQuerySqlCachedCohortPreparer>();
                     break;
+                case ClinDbOptions.RdbmsType.Databricks:
+                    services.AddTransient<ISqlDialect, DatabricksSqlDialect>();
+                    services.AddTransient<ISqlProviderQueryExecutor, DatabricksQueryExecutor>();
+                    services.AddTransient<ICachedCohortPreparer, DatabricksCachedCohortPreparer>();
+                    break;
             }
 
             return services;

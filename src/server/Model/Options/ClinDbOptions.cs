@@ -17,6 +17,7 @@ namespace Model.Options
         public const string POSTGRES = "POSTGRES";
         public const string ORACLE = "ORACLE";
         public const string BIGQUERY = "BIGQUERY";
+        public const string DATABRICKS = "DATABRICKS";
 
         string connectionString;
         public string ConnectionString
@@ -79,6 +80,9 @@ namespace Model.Options
                 case BIGQUERY:
                     Rdbms = RdbmsType.BigQuery;
                     break;
+                case DATABRICKS:
+                    Rdbms = RdbmsType.Databricks;
+                    break;
             }
         }
 
@@ -89,7 +93,8 @@ namespace Model.Options
             MariaDb = 3,
             PostgreSql = 4,
             Oracle = 5,
-            BigQuery = 6
+            BigQuery = 6,
+            Databricks = 7
         }
 
         public ClinDbCohortOptions Cohort = new ClinDbCohortOptions();

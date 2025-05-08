@@ -164,6 +164,75 @@ namespace Services.Cohort
         public override string Complete() => $"DROP TABLE #{TempTableName}";
     }
 
+    // Databricks
+    public class DatabricksCachedCohortPreparer : BaseCachedCohortPreparer
+    {
+        public DatabricksCachedCohortPreparer(
+            ICachedCohortFetcher cohortFetcher,
+            ISqlDialect dialect,
+            IOptions<CompilerOptions> compilerOpts)
+            : base(cohortFetcher, dialect, compilerOpts) { }
+
+        public async override Task<string> Prepare(Guid queryId, bool exportedOnly)
+        {
+            return await Prepare(new Guid[] { queryId }, exportedOnly);
+        }
+
+        public async override Task<string> Prepare(IEnumerable<Guid> queryIds, bool exportedOnly)
+        {
+            var output = new StringBuilder();
+            var cohort = (await Task.WhenAll(queryIds
+                .Select(qid => cohortFetcher.FetchCohortAsync(qid, exportedOnly))))
+                .SelectMany(x => x);
+
+            output.Append(@$"CREATE OR REPLACE TEMPORARY VIEW {TempTableName} AS ");
+            output.AppendLine();
+
+            var isFirst = true;
+            foreach (var recs in Batch(cohort, batchSize))
+            {
+                for (int i = 0; i < recs.Count(); i++)
+                {
+                    var rec = recs.ElementAt(i);
+
+                    if (isFirst)
+                    {
+                        isFirst = false;
+                        var delim = "'";
+
+                        var personId = PersonIdTransformHandler(rec.PersonId, delim);
+                        var exported = ExportedTransformHandler(rec.Exported);
+                        var salt = GuidTransformHandler(rec.Salt, delim);
+                        var qid = GuidTransformHandler(rec.QueryId, delim);
+
+                        output.Append($"SELECT {personId} AS {FieldPersonId},");
+                        output.Append($" {exported} AS {FieldExported},");
+                        output.Append($" {salt} AS {FieldSalt},");
+                        output.Append($" {qid} AS {FieldQueryId}");
+                    }
+                    else
+                    {
+                        output.Append($"SELECT {InsertDelimitedRow(rec)}");    
+                    }
+                    if (i < recs.Count() - 1)
+                    {
+                        output.Append(" UNION ALL ");
+                    }
+                    output.AppendLine();
+                }
+            }
+
+            return output.ToString();
+        }
+
+        public override string CohortToCteFrom() => $"#{TempTableName}";
+
+        public override string CohortToCte() => $"SELECT PersonId AS {FieldInternalPersonId}, Exported, Salt FROM {CohortToCteFrom()}";
+
+        public override string Complete() => $"DROP TABLE #{TempTableName}";
+    }
+
+
     // MySQL
     public class MySqlCachedCohortPreparer : BaseCachedCohortPreparer
     {
